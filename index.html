@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FaceMatch - Advanced Face Recognition</title>
+    <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Lexend', sans-serif;
+        }
+        
+        .drag-area {
+            border: 2px dashed #d1d5db;
+            transition: all 0.3s ease;
+        }
+        
+        .drag-area.drag-over {
+            border-color: #8b5cf6;
+            background-color: #f3e8ff;
+        }
+        
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .gradient-text {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .result-card {
+            transform: translateY(20px);
+            opacity: 0;
+            transition: all 0.5s ease;
+        }
+        
+        .result-card.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+        
+        #loading {
+            display: none;
+        }
+        
+        .pulse-ring {
+            animation: pulse-ring 1.25s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+        }
+        
+        @keyframes pulse-ring {
+            0% {
+                transform: scale(.33);
+            }
+            80%, 100% {
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Header -->
+    <header class="bg-white shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div class="flex justify-between items-center">
+                <div class="flex items-center space-x-2">
+                    <div class="w-10 h-10 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
+                        <span class="text-white font-bold text-xl">F</span>
+                    </div>
+                    <h1 class="text-2xl font-bold gradient-text">FaceMatch</h1>
+                </div>
+                <nav class="hidden md:flex space-x-6">
+                    <a href="#demo" class="text-gray-600 hover:text-purple-600 font-medium transition-colors">Demo</a>
+                    <a href="#features" class="text-gray-600 hover:text-purple-600 font-medium transition-colors">Features</a>
+                    <a href="#api" class="text-gray-600 hover:text-purple-600 font-medium transition-colors">API</a>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="relative py-20 bg-gradient-to-br from-purple-50 to-pink-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <h1 class="text-5xl md:text-6xl font-bold text-gray-900 mb-6">
+                Advanced Face
+                <span class="gradient-text">Recognition</span>
+            </h1>
+            <p class="text-xl text-gray-600 mb-12 max-w-3xl mx-auto">
+                Compare faces with precision using state-of-the-art machine learning. 
+                Upload images or provide URLs to instantly detect facial matches.
+            </p>
+            <a href="#demo" class="inline-flex items-center px-8 py-4 bg-gradient-to-r from-purple-500 to-pink-500 text-white font-semibold rounded-full hover:scale-105 transition-all duration-300 shadow-lg">
+                Try Demo Now
+                <svg class="ml-2 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
+                </svg>
+            </a>
+        </div>
+    </section>
+
+    <!-- Demo Section -->
+    <section id="demo" class="py-20 bg-white">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-12">
+                <h2 class="text-4xl font-bold text-gray-900 mb-4">Try It Live</h2>
+                <p class="text-lg text-gray-600">Upload two images or provide URLs to compare faces</p>
+            </div>
+
+            <!-- Toggle Switch -->
+            <div class="flex justify-center mb-8">
+                <div class="bg-gray-100 p-1 rounded-full flex">
+                    <button id="uploadTab" class="px-6 py-2 rounded-full font-medium transition-all duration-300 bg-white shadow-sm text-purple-600">
+                        Upload Images
+                    </button>
+                    <button id="urlTab" class="px-6 py-2 rounded-full font-medium transition-all duration-300 text-gray-600 hover:text-purple-600">
+                        Use URLs
+                    </button>
+                </div>
+            </div>
+
+            <!-- Upload Mode -->
+            <div id="uploadMode" class="space-y-8">
+                <div class="grid md:grid-cols-2 gap-8">
+                    <!-- Image 1 Upload -->
+                    <div class="space-y-4">
+                        <h3 class="text-lg font-semibold text-gray-900">First Image</h3>
+                        <div class="drag-area bg-gray-50 border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:bg-gray-100 transition-colors cursor-pointer" id="dragArea1">
+                            <div class="space-y-4">
+                                <div class="mx-auto w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center">
+                                    <svg class="w-8 h-8 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <p class="text-lg font-medium text-gray-900">Drop your image here</p>
+                                    <p class="text-sm text-gray-500">or click to browse</p>
+                                </div>
+                            </div>
+                            <input type="file" id="fileInput1" class="hidden" accept="image/*">
+                        </div>
+                        <div id="preview1" class="hidden">
+                            <img class="w-full h-48 object-cover rounded-lg shadow-md" alt="Preview 1">
+                            <p class="text-sm text-gray-600 mt-2 text-center" id="fileName1"></p>
+                        </div>
+                    </div>
+
+                    <!-- Image 2 Upload -->
+                    <div class="space-y-4">
+                        <h3 class="text-lg font-semibold text-gray-900">Second Image</h3>
+                        <div class="drag-area bg-gray-50 border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:bg-gray-100 transition-colors cursor-pointer" id="dragArea2">
+                            <div class="space-y-4">
+                                <div class="mx-auto w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center">
+                                    <svg class="w-8 h-8 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <p class="text-lg font-medium text-gray-900">Drop your image here</p>
+                                    <p class="text-sm text-gray-500">or click to browse</p>
+                                </div>
+                            </div>
+                            <input type="file" id="fileInput2" class="hidden" accept="image/*">
+                        </div>
+                        <div id="preview2" class="hidden">
+                            <img class="w-full h-48 object-cover rounded-lg shadow-md" alt="Preview 2">
+                            <p class="text-sm text-gray-600 mt-2 text-center" id="fileName2"></p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="text-center">
+                    <button id="compareBtn" class="px-8 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white font-semibold rounded-full hover:scale-105 transition-all duration-300 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                        Compare Faces
+                    </button>
+                </div>
+            </div>
+
+            <!-- URL Mode -->
+            <div id="urlMode" class="hidden space-y-8">
+                <div class="grid md:grid-cols-2 gap-8">
+                    <div class="space-y-4">
+                        <h3 class="text-lg font-semibold text-gray-900">First Image URL</h3>
+                        <input type="url" id="url1" placeholder="https://example.com/image1.jpg" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all">
+                        <div id="urlPreview1" class="hidden">
+                            <img class="w-full h-48 object-cover rounded-lg shadow-md" alt="URL Preview 1">
+                        </div>
+                    </div>
+                    <div class="space-y-4">
+                        <h3 class="text-lg font-semibold text-gray-900">Second Image URL</h3>
+                        <input type="url" id="url2" placeholder="https://example.com/image2.jpg" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all">
+                        <div id="urlPreview2" class="hidden">
+                            <img class="w-full h-48 object-cover rounded-lg shadow-md" alt="URL Preview 2">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="text-center">
+                    <button id="compareUrlBtn" class="px-8 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white font-semibold rounded-full hover:scale-105 transition-all duration-300 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                        Compare URLs
+                    </button>
+                </div>
+            </div>
+
+            <!-- Loading -->
+            <div id="loading" class="text-center py-8">
+                <div class="inline-flex items-center space-x-3">
+                    <div class="relative">
+                        <div class="w-8 h-8 bg-purple-500 rounded-full"></div>
+                        <div class="absolute inset-0 w-8 h-8 bg-purple-500 rounded-full pulse-ring"></div>
+                    </div>
+                    <span class="text-lg font-medium text-gray-700">Analyzing faces...</span>
+                </div>
+            </div>
+
+            <!-- Results -->
+            <div id="results" class="result-card mt-12"></div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="py-20 bg-gray-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16">
+                <h2 class="text-4xl font-bold text-gray-900 mb-4">Powerful Features</h2>
+                <p class="text-lg text-gray-600 max-w-2xl mx-auto">Built with cutting-edge technology for accurate and fast face recognition</p>
+            </div>
+
+            <div class="grid md:grid-cols-3 gap-8">
+                <div class="bg-white p-8 rounded-xl shadow-sm hover:shadow-md transition-shadow">
+                    <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mb-6">
+                        <svg class="w-6 h-6 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-900 mb-4">Lightning Fast</h3>
+                    <p class="text-gray-600">Get results in milliseconds with our optimized face recognition algorithms.</p>
+                </div>
+
+                <div class="bg-white p-8 rounded-xl shadow-sm hover:shadow-md transition-shadow">
+                    <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mb-6">
+                        <svg class="w-6 h-6 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-900 mb-4">High Accuracy</h3>
+                    <p class="text-gray-600">State-of-the-art machine learning models ensure precise face matching.</p>
+                </div>
+
+                <div class="bg-white p-8 rounded-xl shadow-sm hover:shadow-md transition-shadow">
+                    <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mb-6">
+                        <svg class="w-6 h-6 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-900 mb-4">Secure & Private</h3>
+                    <p class="text-gray-600">Your images are processed securely and never stored on our servers.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- API Section -->
+    <section id="api" class="py-20 bg-white">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-12">
+                <h2 class="text-4xl font-bold text-gray-900 mb-4">Developer API</h2>
+                <p class="text-lg text-gray-600">Integrate face recognition into your applications</p>
+            </div>
+
+            <div class="bg-gray-900 rounded-xl p-6 text-green-400 font-mono text-sm overflow-x-auto">
+                <div class="mb-4">
+                    <span class="text-blue-400"># Compare faces from uploaded files</span><br>
+                    <span class="text-yellow-400">POST</span> /compare<br>
+                    Content-Type: multipart/form-data<br><br>
+                    
+                    <span class="text-blue-400"># Compare faces from URLs</span><br>
+                    <span class="text-yellow-400">POST</span> /compare_urls<br>
+                    Content-Type: application/json<br>
+                    {<br>
+                    &nbsp;&nbsp;"url1": "https://example.com/image1.jpg",<br>
+                    &nbsp;&nbsp;"url2": "https://example.com/image2.jpg"<br>
+                    }
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-gray-900 text-white py-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <div class="flex justify-center items-center space-x-2 mb-4">
+                <div class="w-8 h-8 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
+                    <span class="text-white font-bold">F</span>
+                </div>
+                <span class="text-xl font-bold">FaceMatch</span>
+            </div>
+            <p class="text-gray-400">© 2024 FaceMatch. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script>
+        // Tab switching
+        const uploadTab = document.getElementById('uploadTab');
+        const urlTab = document.getElementById('urlTab');
+        const uploadMode = document.getElementById('uploadMode');
+        const urlMode = document.getElementById('urlMode');
+
+        uploadTab.addEventListener('click', () => {
+            uploadTab.classList.add('bg-white', 'shadow-sm', 'text-purple-600');
+            uploadTab.classList.remove('text-gray-600');
+            urlTab.classList.remove('bg-white', 'shadow-sm', 'text-purple-600');
+            urlTab.classList.add('text-gray-600');
+            uploadMode.classList.remove('hidden');
+            urlMode.classList.add('hidden');
+        });
+
+        urlTab.addEventListener('click', () => {
+            urlTab.classList.add('bg-white', 'shadow-sm', 'text-purple-600');
+            urlTab.classList.remove('text-gray-600');
+            uploadTab.classList.remove('bg-white', 'shadow-sm', 'text-purple-600');
+            uploadTab.classList.add('text-gray-600');
+            urlMode.classList.remove('hidden');
+            uploadMode.classList.add('hidden');
+        });
+
+        // File upload handling
+        let file1 = null;
+        let file2 = null;
+
+        function setupDragAndDrop(dragAreaId, fileInputId, previewId, fileNameId, fileVar) {
+            const dragArea = document.getElementById(dragAreaId);
+            const fileInput = document.getElementById(fileInputId);
+            const preview = document.getElementById(previewId);
+            const fileName = document.getElementById(fileNameId);
+
+            dragArea.addEventListener('click', () => fileInput.click());
+
+            dragArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dragArea.classList.add('drag-over');
+            });
+
+            dragArea.addEventListener('dragleave', () => {
+                dragArea.classList.remove('drag-over');
+            });
+
+            dragArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dragArea.classList.remove('drag-over');
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    handleFile(files[0], previewId, fileNameId, fileVar);
+                }
+            });
+
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) {
+                    handleFile(e.target.files[0], previewId, fileNameId, fileVar);
+                }
+            });
+        }
+
+        function handleFile(file, previewId, fileNameId, fileVar) {
+            if (fileVar === 1) file1 = file;
+            else file2 = file;
+
+            const preview = document.getElementById(previewId);
+            const fileName = document.getElementById(fileNameId);
+            const img = preview.querySelector('img');
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                img.src = e.target.result;
+                fileName.textContent = file.name;
+                preview.classList.remove('hidden');
+                checkCompareButton();
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function checkCompareButton() {
+            const compareBtn = document.getElementById('compareBtn');
+            compareBtn.disabled = !(file1 && file2);
+        }
+
+        function checkCompareUrlButton() {
+            const compareUrlBtn = document.getElementById('compareUrlBtn');
+            const url1 = document.getElementById('url1').value;
+            const url2 = document.getElementById('url2').value;
+            compareUrlBtn.disabled = !(url1 && url2);
+        }
+
+        // Setup drag and drop areas
+        setupDragAndDrop('dragArea1', 'fileInput1', 'preview1', 'fileName1', 1);
+        setupDragAndDrop('dragArea2', 'fileInput2', 'preview2', 'fileName2', 2);
+
+        // URL preview
+        document.getElementById('url1').addEventListener('input', (e) => {
+            previewUrl(e.target.value, 'urlPreview1');
+            checkCompareUrlButton();
+        });
+
+        document.getElementById('url2').addEventListener('input', (e) => {
+            previewUrl(e.target.value, 'urlPreview2');
+            checkCompareUrlButton();
+        });
+
+        function previewUrl(url, previewId) {
+            const preview = document.getElementById(previewId);
+            const img = preview.querySelector('img');
+
+            if (url && isValidUrl(url)) {
+                img.src = url;
+                img.onload = () => preview.classList.remove('hidden');
+                img.onerror = () => preview.classList.add('hidden');
+            } else {
+                preview.classList.add('hidden');
+            }
+        }
+
+        function isValidUrl(string) {
+            try {
+                new URL(string);
+                return true;
+            } catch (_) {
+                return false;
+            }
+        }
+
+        // Compare functions
+        document.getElementById('compareBtn').addEventListener('click', compareFiles);
+        document.getElementById('compareUrlBtn').addEventListener('click', compareUrls);
+
+        async function compareFiles() {
+            const loading = document.getElementById('loading');
+            const results = document.getElementById('results');
+            
+            loading.style.display = 'block';
+            results.innerHTML = '';
+            results.classList.remove('show');
+
+            const formData = new FormData();
+            formData.append('file1', file1);
+            formData.append('file2', file2);
+
+            try {
+                const response = await fetch('/compare', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+                displayResult(data.match);
+            } catch (error) {
+                displayError(error.message);
+            } finally {
+                loading.style.display = 'none';
+            }
+        }
+
+        async function compareUrls() {
+            const loading = document.getElementById('loading');
+            const results = document.getElementById('results');
+            const url1 = document.getElementById('url1').value;
+            const url2 = document.getElementById('url2').value;
+            
+            loading.style.display = 'block';
+            results.innerHTML = '';
+            results.classList.remove('show');
+
+            try {
+                const response = await fetch('/compare_urls', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ url1, url2 })
+                });
+
+                const data = await response.json();
+                displayResult(data.match);
+            } catch (error) {
+                displayError(error.message);
+            } finally {
+                loading.style.display = 'none';
+            }
+        }
+
+        function displayResult(isMatch) {
+            const results = document.getElementById('results');
+            const matchClass = isMatch ? 'border-green-500 bg-green-50' : 'border-red-500 bg-red-50';
+            const iconColor = isMatch ? 'text-green-500' : 'text-red-500';
+            const textColor = isMatch ? 'text-green-800' : 'text-red-800';
+            const icon = isMatch ? 
+                '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>' :
+                '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>';
+
+            results.innerHTML = `
+                <div class="border-2 ${matchClass} rounded-xl p-8 text-center">
+                    <div class="flex justify-center mb-4">
+                        <div class="w-16 h-16 ${iconColor.replace('text-', 'bg-').replace('500', '100')} rounded-full flex items-center justify-center">
+                            <svg class="w-8 h-8 ${iconColor}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                ${icon}
+                            </svg>
+                        </div>
+                    </div>
+                    <h3 class="text-2xl font-bold ${textColor} mb-2">
+                        ${isMatch ? 'Match Found!' : 'No Match'}
+                    </h3>
+                    <p class="text-lg ${textColor.replace('800', '600')}">
+                        ${isMatch ? 'The faces in both images appear to be the same person.' : 'The faces in the images appear to be different people.'}
+                    </p>
+                </div>
+            `;
+            
+            setTimeout(() => results.classList.add('show'), 100);
+        }
+
+        function displayError(message) {
+            const results = document.getElementById('results');
+            results.innerHTML = `
+                <div class="border-2 border-red-500 bg-red-50 rounded-xl p-8 text-center">
+                    <div class="flex justify-center mb-4">
+                        <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center">
+                            <svg class="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                            </svg>
+                        </div>
+                    </div>
+                    <h3 class="text-2xl font-bold text-red-800 mb-2">Error</h3>
+                    <p class="text-lg text-red-600">${message}</p>
+                </div>
+            `;
+            
+            setTimeout(() => results.classList.add('show'), 100);
+        }
+
+        // Smooth scroll for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                document.querySelector(this.getAttribute('href')).scrollIntoView({
+                    behavior: 'smooth'
+                });
+            });
+        });
+    </script>
+</body>
+</html>
