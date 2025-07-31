@@ -29,8 +29,8 @@ WORKDIR /build
 RUN python3 -m venv /venv
 ENV PATH="/venv/bin:$PATH"
 
-RUN pip install --upgrade pip setuptools && \
-    pip install face_recognition fastapi python-multipart uvicorn
+RUN pip install --upgrade pip && \
+    pip install aiohttp face_recognition fastapi python-multipart setuptools==80.9.0 uvicorn
 
 # Final image
 FROM python:3.13-slim AS final
